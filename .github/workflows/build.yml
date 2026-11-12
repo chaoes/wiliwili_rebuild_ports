@@ -54,7 +54,7 @@ jobs:
             https://github.com/xfangfang/wiliwili.git src
           for p in patches/*.patch; do
             echo "--- apply $p"
-            git -C src apply --verbose "$p"
+            git -C src apply --verbose "$PWD/$p"
           done
           echo "版本信息：$(git -C src describe --always --tags)"
           echo "提交：$(git -C src rev-parse --short HEAD)"

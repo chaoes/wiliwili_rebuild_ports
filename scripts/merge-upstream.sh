@@ -20,8 +20,9 @@ git clone -q --depth 1 --branch "$TAG" --recurse-submodules --shallow-submodules
 echo "==> 逐个检查补丁"
 failed=0
 for p in patches/*.patch; do
-  if git -C "$WORK/src" apply --check "$p" 2>"$WORK/err"; then
-    git -C "$WORK/src" apply "$p"
+  abs=$(cd "$(dirname "$p")" && pwd)/$(basename "$p")
+  if git -C "$WORK/src" apply --check "$abs" 2>"$WORK/err"; then
+    git -C "$WORK/src" apply "$abs"
     echo "  [ok]   $p"
   else
     echo "  [fail] $p"
