@@ -19,9 +19,9 @@
 - **本地补丁**：
   - `0001-dynamic-up-mid-as-string`：动态页 `up_list` 里 `mid` 可能是字符串，`NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE` 会抛 `type must be number, but is string` 打挂整页，改为兼容两种类型
   - `0002-image-request-headers-and-retry`：图片请求没设请求头，libcurl 的 `User-Agent: curl/7.68.0` 在 B 站图床缓存未命中时被 ACL 判 403（`X-Error-Info: acls.access`），导致部分封面永久空白；补 `HTTP::HEADERS` + 最多 3 次重试
-- **构建**：GitHub Actions `build-port`（ubuntu-24.04-arm + bionic 容器）
-- **上机**：H700（muOS 2606.0 ANDROMEDA，Mali-G31 / GLES 3.2）通过。首页 16 张封面全部加载、动态页无 `type_error.302`、视频播放/全屏/弹幕/音频正常、退出码 0
-- **产物**：`wiliwili-port-v1.6.0-h700-aarch64.zip`（sha256 见 Release 附件 `SHA256SUMS`）
+- **构建**：GitHub Actions `build-port`（ubuntu-24.04-arm + bionic 容器），run [43151700632](https://github.com/chaoes/wiliwili_rebuild_ports/actions/runs/43151700632) 成功
+- **上机**：H700（muOS 2606.0 ANDROMEDA，Mali-G31 / GLES 3.2）通过 —— 测的就是 CI 产物 zip 解包后的二进制（7,276,320 字节，md5 `a585f8a831eb12c9cb61325972d54b83`）：首页 16 张封面全部加载、`image request failed` 0 条、动态页无 `type_error.302`、视频播放/全屏/弹幕/音频正常、退出码 0
+- **产物**：`wiliwili-port-v1.6.0-h700-aarch64.zip`（53,378,415 字节，sha256 `7601484e003b35f7afcefc4af7f4b380e2250bfb979a68e71f1effb60dd89745`）
 - **依赖**：`deps-v1.6.0`（libs.aarch64 188 个库 + gl4es v1.1.7）
 
 ---
