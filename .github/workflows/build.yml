@@ -112,15 +112,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.v.outputs.release }}
-          name: wiliwili muOS Ports ${{ steps.v.outputs.release }}（H700 / aarch64）
+          name: wiliwili Ports ${{ steps.v.outputs.release }}（aarch64）
           body: |
             上游：[xfangfang/wiliwili](https://github.com/xfangfang/wiliwili) `${{ steps.v.outputs.upstream }}`
-            平台：muOS / aarch64（Mali-G31, GLES2 + gl4es）
-            本地补丁：
+            平台：aarch64 Ports（glibc ≥ 2.27，GLES2 + gl4es，系统需自带 SDL2 ≥ 2.28）；实测设备 H700 / muOS 2606.0
+            本地修复：
             - `0001` 动态页 `up_list` 的 `mid` 字符串兼容
             - `0002` 图片请求补请求头 + 重试（修部分封面 403 永远空白）
+            - 启动脚本 `unset SDL_BLITTER_DISABLED`（修 muOS 下播放视频白屏闪烁）
 
-            安装：解压到 `/mnt/mmc/ports/`，然后从 muOS 的 Ports 分类启动。
+            安装：解压到设备的 Ports 目录（muOS 为 `/mnt/mmc/ports/`，其它前端多为 `/roms/ports/`），再从系统的 Ports 分类启动。
             校验：见附件 `SHA256SUMS`。许可证：GPL-3.0（与上游一致）。
           files: |
             wiliwili-port-*.zip
