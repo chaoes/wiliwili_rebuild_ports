@@ -1,0 +1,6 @@
+# 运行时依赖包（libs.aarch64 + gl4es.aarch64）
+# 作为本仓库的 release 资产固定提供，避免把几十 MB 二进制塞进 git 历史。
+# 升级依赖（比如换 mpv）时才需要改这里，并在 MERGE_LOG.md 里记一笔。
+DEPS_TAG=deps-v1.6.0
+DEPS_ASSET=wiliwili-port-deps-aarch64.tar.gz
+DEPS_SHA256=8ef8a88d7eb7fdbe8d32e7a5902e00851740e1e44026fb649966dbaf39eb714d

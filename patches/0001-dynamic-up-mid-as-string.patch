@@ -1,0 +1,27 @@
+diff --git a/wiliwili/include/api/bilibili/result/dynamic_video.h b/wiliwili/include/api/bilibili/result/dynamic_video.h
+index fedac75..48666d0 100644
+--- a/wiliwili/include/api/bilibili/result/dynamic_video.h
++++ b/wiliwili/include/api/bilibili/result/dynamic_video.h
+@@ -68,7 +68,21 @@ public:
+     std::string uname;
+     uint64_t mid;
+ };
+-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DynamicUpResult, has_update, face, uname, mid);
++// 上游 v1.6.0 使用 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE 按 number 解析 mid，
++// 但 B 站关注列表/动态接口会返回 "mid":"356307984" 这种字符串形式，
++// 导致 DynamicTab 整页抛 json.exception.type_error.302（type must be number, but is string）。
++// 这里改为同时兼容数值与字符串，字符串按 uint64_t 解析。
++inline void from_json(const nlohmann::json& nlohmann_json_j, DynamicUpResult& nlohmann_json_t) {
++    nlohmann_json_j.at("has_update").get_to(nlohmann_json_t.has_update);
++    nlohmann_json_j.at("face").get_to(nlohmann_json_t.face);
++    nlohmann_json_j.at("uname").get_to(nlohmann_json_t.uname);
++    const auto& mid_json = nlohmann_json_j.at("mid");
++    if (mid_json.is_string()) {
++        nlohmann_json_t.mid = std::stoull(mid_json.get<std::string>());
++    } else {
++        mid_json.get_to(nlohmann_json_t.mid);
++    }
++}
+ 
+ typedef std::vector<DynamicUpResult> DynamicUpListResult;
+ 

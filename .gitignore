@@ -1,0 +1,8 @@
+# 构建中间产物
+src/
+out/
+cache/
+deps/
+*.zip
+*.tar.gz
+temp/

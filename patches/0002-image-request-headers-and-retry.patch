@@ -1,0 +1,77 @@
+diff --git a/wiliwili/source/utils/image_helper.cpp b/wiliwili/source/utils/image_helper.cpp
+index e1e7b4f..7a4dd9a 100644
+--- a/wiliwili/source/utils/image_helper.cpp
++++ b/wiliwili/source/utils/image_helper.cpp
+@@ -8,6 +8,8 @@
+ #include <borealis/core/thread.hpp>
+ #include <stb_image.h>
+ 
++#include <chrono>
++#include <thread>
+ #include "utils/image_helper.hpp"
+ #include "utils/string_helper.hpp"
+ #include "api/bilibili/util/http.hpp"
+@@ -161,7 +163,7 @@ void ImageHelper::load(const std::string &url) {
+     }
+ #endif
+ 
+-    brls::Logger::verbose("load view: {} {}", (size_t)this->imageView, (size_t)this);
++    brls::Logger::debug("image load: url={} view={} helper={}", this->imageUrl, (size_t)this->imageView, (size_t)this);
+ 
+     //    std::unique_lock<std::mutex> lock(this->loadingMutex);
+ 
+@@ -203,22 +205,41 @@ void ImageHelper::requestImage() {
+     brls::Logger::verbose("request Image 2: {} {}", this->imageUrl, this->isCancel);
+ 
+     // 请求图片
+-    cpr::Session session;
+-    CURL* curl = session.GetCurlHolder()->handle;
+-    curl_easy_setopt(curl, CURLOPT_SHARE, ImageThreadPool::instance().getShare());
+-    curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, bilibili::HTTP::DNS_CACHE_TIMEOUT);
+-    session.SetTimeout(cpr::Timeout{bilibili::HTTP::TIMEOUT});
+-    session.SetConnectTimeout(cpr::ConnectTimeout{bilibili::HTTP::CONNECTION_TIMEOUT});
+-    session.SetVerifySsl(bilibili::HTTP::VERIFY);
+-    session.SetProxies(bilibili::HTTP::PROXIES);
+-    session.SetUrl(cpr::Url{this->imageUrl});
+-    session.SetProgressCallback(cpr::ProgressCallback([this](...) -> bool { return !this->isCancel; }));
+-    cpr::Response r = session.Get();
++    // 本地修复（muOS 移植版）：
++    // 1) 原实现没有设置任何请求头，libcurl 会带上自己的 UA（Ubuntu 18.04 的 libcurl 是
++    //    curl/7.68.0）。B 站图床的 ACL 在缓存未命中（X-Cache-Status: MISS）时会把这类 UA
++    //    直接 403（X-Error-Info: acls.access），导致个别封面永久显示占位图。
++    //    这里改用与其他接口一致的 bilibili::HTTP::HEADERS。
++    // 2) 图床偶发瞬时失败时最多重试 3 次，避免一次失败就永久留白。
++    constexpr int MAX_ATTEMPT = 3;
++    cpr::Response r;
++    for (int attempt = 1; attempt <= MAX_ATTEMPT; ++attempt) {
++        if (this->isCancel) break;
++        cpr::Session session;
++        CURL* curl = session.GetCurlHolder()->handle;
++        curl_easy_setopt(curl, CURLOPT_SHARE, ImageThreadPool::instance().getShare());
++        curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, bilibili::HTTP::DNS_CACHE_TIMEOUT);
++        session.SetTimeout(cpr::Timeout{bilibili::HTTP::TIMEOUT});
++        session.SetConnectTimeout(cpr::ConnectTimeout{bilibili::HTTP::CONNECTION_TIMEOUT});
++        session.SetVerifySsl(bilibili::HTTP::VERIFY);
++        session.SetProxies(bilibili::HTTP::PROXIES);
++        session.SetHeader(bilibili::HTTP::HEADERS);
++        session.SetUrl(cpr::Url{this->imageUrl});
++        session.SetProgressCallback(cpr::ProgressCallback([this](...) -> bool { return !this->isCancel; }));
++        r = session.Get();
++        if (r.status_code == 200 && r.downloaded_bytes > 0) break;
++        if (attempt < MAX_ATTEMPT && !this->isCancel)
++            std::this_thread::sleep_for(std::chrono::milliseconds(attempt * 500));
++    }
+ 
+     // 图片请求失败或取消请求
+     if (r.status_code != 200 || r.downloaded_bytes == 0 || this->isCancel) {
+-        brls::Logger::verbose("request undone: {} {} {} {}", r.status_code, r.downloaded_bytes, this->isCancel,
+-                              r.url.str());
++        if (!this->isCancel)
++            brls::Logger::warning("request image failed: status={} bytes={} url={}", r.status_code,
++                                  r.downloaded_bytes, this->imageUrl);
++        else
++            brls::Logger::verbose("request undone: {} {} {} {}", r.status_code, r.downloaded_bytes, this->isCancel,
++                                  r.url.str());
+ 
+         this->clean();
+         return;

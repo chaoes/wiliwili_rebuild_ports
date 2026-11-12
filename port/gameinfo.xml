@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gameList>
+  <game>
+    <path>./Wiliwili.sh</path>
+    <name>Wiliwili</name>
+    <desc>A lightweight, gamepad-friendly Bilibili client powered by Borealis and mpv.</desc>
+    <releasedate>20260930T000000</releasedate>
+    <developer>xfangfang</developer>
+    <publisher>Open Source</publisher>
+    <genre>Media</genre>
+    <image>./wiliwili/screenshot.png</image>
+  </game>
+</gameList>

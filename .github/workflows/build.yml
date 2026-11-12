@@ -1,0 +1,122 @@
+name: build-port
+
+# 只编译 muOS / aarch64 Ports 平台，产物是可直接丢进 /mnt/mmc/ports 的 zip。
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: '上游 tag（留空则用 VERSION 文件里的值）'
+        required: false
+        default: ''
+      publish:
+        description: '是否创建/更新 GitHub Release'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-port-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm          # 原生 arm64，无需 qemu/binfmt
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 解析版本
+        id: v
+        run: |
+          TAG="${{ inputs.upstream_tag }}"
+          [ -z "$TAG" ] && TAG="$(tr -d '[:space:]' < VERSION)"
+          RELEASE="v${TAG#v}"
+          echo "upstream=$TAG"   >> "$GITHUB_OUTPUT"
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "上游版本: $TAG → release $RELEASE"
+
+      - name: 下载依赖资产并校验
+        run: |
+          set -a; . ./deps.lock; set +a
+          curl -fsSL -o deps.tar.gz \
+            "https://github.com/${{ github.repository }}/releases/download/${DEPS_TAG}/${DEPS_ASSET}"
+          echo "${DEPS_SHA256}  deps.tar.gz" | sha256sum -c -
+          mkdir -p deps && tar -xzf deps.tar.gz -C deps
+          ls deps
+
+      - name: 拉取上游源码并打补丁
+        run: |
+          git clone --depth 1 --branch "${{ steps.v.outputs.upstream }}" \
+            --recurse-submodules --shallow-submodules \
+            https://github.com/xfangfang/wiliwili.git src
+          for p in patches/*.patch; do
+            echo "--- apply $p"
+            git -C src apply --verbose "$p"
+          done
+          echo "版本信息：$(git -C src describe --always --tags)"
+          echo "提交：$(git -C src rev-parse --short HEAD)"
+
+      - name: 缓存编译依赖（SDL / cmake 中间产物）
+        uses: actions/cache@v4
+        with:
+          path: cache/deps
+          key: deps-${{ steps.v.outputs.upstream }}-${{ hashFiles('docker/Dockerfile', 'deps.lock') }}
+
+      - name: 构建 bionic 容器
+        run: docker build -f docker/Dockerfile -t wiliwili-bionic .
+
+      - name: 编译 wiliwili
+        run: |
+          mkdir -p out cache
+          docker run --rm --platform linux/arm64 \
+            -v "$PWD:/work" -w /work \
+            -e WORK=/work -e SRC=/work/src \
+            -e LIBS=/work/deps/libs.aarch64 \
+            -e OUT=/work/out -e BUILD=/work/cache \
+            wiliwili-bionic bash /work/docker/build.sh
+          ls -lh out
+
+      - name: 组装 Ports 包
+        run: |
+          set -euo pipefail
+          REL="${{ steps.v.outputs.release }}"
+          PKG=build/wiliwili
+          rm -rf build && mkdir -p "$PKG" build
+          cp    out/wiliwili.aarch64            "$PKG/wiliwili.aarch64"
+          cp -a deps/libs.aarch64  deps/gl4es.aarch64 "$PKG/"
+          cp -a src/resources                   "$PKG/resources"
+          cp -a port/conf                       "$PKG/conf"
+          mkdir -p "$PKG/conf/wiliwili"         # 空目录，首次启动由程序生成配置
+          cp -a port/licenses                   "$PKG/licenses"
+          cp    out/ca-certificates.crt         "$PKG/ca-certificates.crt"
+          cp    port/port.json port/gameinfo.xml port/screenshot.png port/cover.jpg \
+                port/README.md port/wiliwili.md "$PKG/"
+          cp    port/Wiliwili.sh                build/Wiliwili.sh
+          chmod 755 build/Wiliwili.sh
+          ZIP="wiliwili-port-${REL}-h700-aarch64.zip"
+          ( cd build && zip -r -X -q "../$ZIP" Wiliwili.sh wiliwili )
+          sha256sum "$ZIP" > SHA256SUMS
+          ls -lh "$ZIP"; cat SHA256SUMS
+
+      - name: 发布 / 更新 Release
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.release }}
+          name: wiliwili muOS Ports ${{ steps.v.outputs.release }}（H700 / aarch64）
+          body: |
+            上游：[xfangfang/wiliwili](https://github.com/xfangfang/wiliwili) `${{ steps.v.outputs.upstream }}`
+            平台：muOS / aarch64（Mali-G31, GLES2 + gl4es）
+            本地补丁：
+            - `0001` 动态页 `up_list` 的 `mid` 字符串兼容
+            - `0002` 图片请求补请求头 + 重试（修部分封面 403 永远空白）
+
+            安装：解压到 `/mnt/mmc/ports/`，然后从 muOS 的 Ports 分类启动。
+            校验：见附件 `SHA256SUMS`。许可证：GPL-3.0（与上游一致）。
+          files: |
+            wiliwili-port-*.zip
+            SHA256SUMS
+          fail_on_unmatched_files: true

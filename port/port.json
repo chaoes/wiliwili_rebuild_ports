@@ -1,0 +1,43 @@
+{
+    "version": 4,
+    "name": "wiliwili-portmaster-a18project-v26.10.1.zip",
+    "items": [
+        "Wiliwili.sh",
+        "wiliwili/"
+    ],
+    "items_opt": null,
+    "attr": {
+        "title": "Wiliwili",
+        "porter": [
+            "iken"
+        ],
+        "desc": "A lightweight, gamepad-friendly Bilibili client powered by Borealis and mpv.",
+        "desc_md": null,
+        "inst": "Ready to run. Requires active Wi-Fi connection.",
+        "inst_md": null,
+        "genres": [
+            "other"
+        ],
+        "image": {},
+        "rtr": false,
+        "exp": false,
+        "runtime": [],
+        "store": [],
+        "availability": "full",
+        "reqs": [],
+        "arch": [
+            "aarch64"
+        ],
+        "min_glibc": ""
+    },
+    "status": {
+        "source": "file",
+        "md5": "cad3787bcded5b60af54add31c652bc8",
+        "status": "Installed"
+    },
+    "files": {
+        "port.json": "wiliwili/port.json",
+        "Wiliwili.sh": "Wiliwili.sh",
+        "wiliwili/": "wiliwili/"
+    }
+}
