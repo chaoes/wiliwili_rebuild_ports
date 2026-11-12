@@ -50,6 +50,15 @@ wiliwili 把窗口尺寸记在 `wiliwili_config.json` 的 `setting.home_window_s
 改法：创建窗口之前，把记录下来的窗口尺寸钳制到显示模式之内（`SDL_GetDesktopDisplayMode`）。
 桌面等大分辨率设备上窗口原本就比屏幕小，这段逻辑不会触发；全屏模式由驱动自己处理，也不受影响。
 
+### 0004 · 关于页增加「移植项目地址」
+
+上游的「关于更多」页面只有「开源地址」（上游仓库）。这个移植版在它下面补一行
+「移植项目地址」，指向本仓库，方便用户区分「上游作品」与「这个打包移植」。
+
+做法：`resources/xml/fragment/settings_about.xml` 里在上游链接后面加一个 Header + Label，
+`resources/i18n/*/wiliwili.json` 补 `setting.about.port_repository` 文案（中文为「移植项目地址」，
+其它语言回退为 `Port project`）。纯资源改动，不影响任何逻辑。
+
 ### 构建选项 · 播放视频时屏幕闪白（`-DMPV_NO_FB=ON`）
 
 默认配置下 mpv 渲染到一张独立的 framebuffer，应用再把这张纹理贴到屏幕上。

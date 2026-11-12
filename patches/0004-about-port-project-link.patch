@@ -1,0 +1,103 @@
+diff --git a/resources/i18n/en-US/wiliwili.json b/resources/i18n/en-US/wiliwili.json
+index 8bf54b3..e28eb4a 100644
+--- a/resources/i18n/en-US/wiliwili.json
++++ b/resources/i18n/en-US/wiliwili.json
+@@ -139,6 +139,7 @@
+       "repository": "Repository",
+       "brief": "Yet another third-party bilibili client",
+       "repo_header": "Repository",
++      "port_repository": "Port project",
+       "author_header": "Author's speech",
+       "author": "一直想做个艺术家, 可惜程序员都没什么发挥的空间\n直到这个作品诞生，实现了：「在游戏机上看视频；用手机来玩游戏」\n或许算得上是一种行为艺术，这样的话我也就圆满了"
+     },
+diff --git a/resources/i18n/it/wiliwili.json b/resources/i18n/it/wiliwili.json
+index 20d4792..1d532f3 100644
+--- a/resources/i18n/it/wiliwili.json
++++ b/resources/i18n/it/wiliwili.json
+@@ -139,6 +139,7 @@
+       "repository": "Repository",
+       "brief": "Ancora un altro cliente bilibili di terze parti",
+       "repo_header": "Repository",
++      "port_repository": "Port project",
+       "author_header": "Intervento dell'autore",
+       "author": "一直想做个艺术家, 可惜程序员都没什么发挥的空间\n直到这个作品诞生,实现了：「在游戏机上看视频;用手机来玩游戏」\n或许算得上是一种行为艺术,这样的话我也就圆满了"
+     },
+diff --git a/resources/i18n/ja-RYU/wiliwili.json b/resources/i18n/ja-RYU/wiliwili.json
+index 22429e6..7d82158 100644
+--- a/resources/i18n/ja-RYU/wiliwili.json
++++ b/resources/i18n/ja-RYU/wiliwili.json
+@@ -139,6 +139,7 @@
+       "repository": "リポジトリ",
+       "brief": "さらに別ぬサードパーティぬビリビリクライアント",
+       "repo_header": "リポジトリ",
++      "port_repository": "Port project",
+       "author_header": "著者ぬスピーチ",
+       "author": "わんねーかたくじらアーティストないぶさんでぃうむとーいびたしが、じゃんにんがちープログラマーぬ居場所ーあいびらん\n「ゲーム機っし動画んーちゃい、携帯電話っしゲームさいすん」でぃぬしぐとぅぬんまりー、実現すか\nあるさにぬパフォーマンスアート、くぬばーわんねーみーなやびーん"
+     },
+diff --git a/resources/i18n/ja/wiliwili.json b/resources/i18n/ja/wiliwili.json
+index ccd374a..33bac60 100644
+--- a/resources/i18n/ja/wiliwili.json
++++ b/resources/i18n/ja/wiliwili.json
+@@ -139,6 +139,7 @@
+       "repository": "リポジトリ",
+       "brief": "さらに別のサードパーティのビリビリクライアント",
+       "repo_header": "リポジトリ",
++      "port_repository": "Port project",
+       "author_header": "著者のスピーチ",
+       "author": "私はずっとアーティストになりたいと思っていましたが、残念ながらプログラマーの居場所はありません\n「ゲーム機で動画を見たり、携帯電話でゲームをしたりする」という仕事が生まれ、実現するまで\nある種のパフォーマンスアート、この場合私は完成します"
+     },
+diff --git a/resources/i18n/ko/wiliwili.json b/resources/i18n/ko/wiliwili.json
+index 93bcbd1..968eadc 100644
+--- a/resources/i18n/ko/wiliwili.json
++++ b/resources/i18n/ko/wiliwili.json
+@@ -139,6 +139,7 @@
+       "repository": "저장소",
+       "brief": "또 다른 타사 bilibili 클라이언트",
+       "repo_header": "저장소",
++      "port_repository": "Port project",
+       "author_header": "제작자의 말",
+       "author": "항상 예술가가 되고 싶었지만 안타깝게도 프로그래머를 위한 자리가 많지 않습니다.\n이 작품이 탄생하고 실현되기까지:「게임 콘솔에서 비디오 보기, 휴대폰에서 게임하기」\n일종의 공연 예술이라고 할 수 있을지도 모르겠지만, 나는 완성 될 것입니다."
+     },
+diff --git a/resources/i18n/zh-Hans/wiliwili.json b/resources/i18n/zh-Hans/wiliwili.json
+index cb2147c..41abdc8 100644
+--- a/resources/i18n/zh-Hans/wiliwili.json
++++ b/resources/i18n/zh-Hans/wiliwili.json
+@@ -139,6 +139,7 @@
+       "repository": "项目首页",
+       "brief": "专为手柄控制设计的第三方跨平台B站客户端\n完美复刻官方PC端B站，满足日常使用, 目前可以运行在PC全平台、PSV、PS4 和 Nintendo Switch 上",
+       "repo_header": "开源地址",
++      "port_repository": "移植项目地址",
+       "author_header": "作者发言",
+       "author": "一直想做个艺术家, 可惜程序员都没什么发挥的空间\n直到这个作品诞生，实现了：「在游戏机上看视频；用手机来玩游戏」\n或许算得上是一种行为艺术，这样的话我也就圆满了"
+     },
+diff --git a/resources/i18n/zh-Hant/wiliwili.json b/resources/i18n/zh-Hant/wiliwili.json
+index 85caa51..4a251cc 100644
+--- a/resources/i18n/zh-Hant/wiliwili.json
++++ b/resources/i18n/zh-Hant/wiliwili.json
+@@ -139,6 +139,7 @@
+       "repository": "專案首頁",
+       "brief": "專為搖桿控制設計的第三方跨平臺B站客戶端\n完美復刻官方PC端B站，滿足日常使用, 目前可以執行在PC全平臺、PSV、PS4 和 Nintendo Switch 上",
+       "repo_header": "開源位址",
++      "port_repository": "移植專案位址",
+       "author_header": "作者發言",
+       "author": "一直想做個藝術家, 可惜程式師都沒什麽發揮的空間\n直到這個作品誕生，實現了：「在遊戲機上看影片；用手機來玩遊戲」\n或許算得上是一種行為藝術，這樣的話我也就圓滿了"
+     },
+diff --git a/resources/xml/fragment/settings_about.xml b/resources/xml/fragment/settings_about.xml
+index fe8b2bf..e9c0dbd 100644
+--- a/resources/xml/fragment/settings_about.xml
++++ b/resources/xml/fragment/settings_about.xml
+@@ -49,6 +49,14 @@
+                 marginLeft="20"
+                 marginBottom="@style/wiliwili/margin/20"
+                 text="@i18n/wiliwili/github"/>
++        <brls:Header
++                title="@i18n/wiliwili/setting/about/port_repository"
++                marginBottom="@style/wiliwili/margin/20"/>
++        <brls:Label
++                textColor="#6693B6"
++                marginLeft="20"
++                marginBottom="@style/wiliwili/margin/20"
++                text="https://github.com/chaoes/wiliwili_rebuild_ports"/>
+ 
+         <brls:Header
+                 width="@style/wiliwili/about/speech/header"
