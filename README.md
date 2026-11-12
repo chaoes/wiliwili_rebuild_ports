@@ -164,7 +164,7 @@ git tag v1.7.0 && git push origin main v1.7.0
 推 tag 后 CI 自动出包；上机复测通过后，把结论补进那条合并记录。
 补丁失效时脚本会指出是哪一条，手动 rebase 后更新 `patches/` 即可。
 
-每周还有一个 [`upstream-check`](.github/workflows/upstream-check.yml) 任务盯上游 release，有新版本会自动开 issue。
+每周还有一个 [`release-check`](.github/workflows/release-check.yml) 任务核对 `VERSION` 与最新 Release 是否一致（忘记发版或忘记改版本号都会开 issue）。
 
 ## 目录结构
 
