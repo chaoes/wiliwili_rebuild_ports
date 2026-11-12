@@ -37,14 +37,14 @@
   - 现象：窗口状态里记录的尺寸大于面板时，画面被驱动等比缩放，出现黑边、比例不对
   - 根因：部分掌机 SDL 视频驱动按窗口尺寸创建 GL 渲染表面（muOS 的 `mali-fbdev` blitter 路径即是），而 wiliwili 记录的默认窗口是 1280x720、H700 面板是 720x720
   - 修复：`createWindow` 之前用 `SDL_GetDesktopDisplayMode` 把 `VideoContext::sizeW/sizeH` 钳制到显示模式之内；桌面等大屏设备窗口本就小于屏幕，不触发
-- **改动三 · 启动脚本 v5（`port/Wiliwili.sh`，r3 发版后合入 main，将随下一个发布包生效）**
+- **改动三 · 启动脚本 v5（`port/Wiliwili.sh`）**
   - 音频插件探测改为「缓存 + 常见目录 + 浅层 find」，启动从 40–60 秒降到 1 秒内
   - 不再 `mount -o remount,rw /`、不再往 `/usr/lib` 拷插件，只设 `ALSA_PLUGIN_DIR`
   - `~/.asoundrc` 仅在检测到 pipewire 插件且未指向 pipewire 时写入，写前备份；找不到插件时交还系统默认配置
   - `get_controls` / `bind_directories` / `pm_platform_helper` / `pm_finish` / `$GPTOKEYB` 全部加存在性判断，脱离 PortMaster 前端也能启动
-- **构建**：build-port，run [43181092309](https://github.com/chaoes/wiliwili_rebuild_ports/actions/runs/43181092309) 成功
+- **构建**：build-port，run [43192590181](https://github.com/chaoes/wiliwili_rebuild_ports/actions/runs/43192590181) 成功（含启动脚本 v5 的最终包）
 - **上机**（H700，系统 Ports 分类启动）：首页封面全真实、动态页正常；播放视频连拍 40 帧 0 空帧、音频 `RUNNING`；退出码 0
-- **产物**：`wiliwili-port-v1.6.0-r3-aarch64.zip`（53,378,108 字节，sha256 `cbca020c9745f818e4c5f75efb92bb73642d06c98af124e36b6dfe86b4735a11`）
+- **产物**：`wiliwili-port-v1.6.0-r3-aarch64.zip`（53,378,056 字节，sha256 `ec44b7d27fa9d0f0dbf7c0c64c5fac749cc2d989e0b92d66a64b77a84d668aac`），二进制 7,280,400 字节 md5 `bf69d98a0c3f77a6f78d55c0895343e4`
 - **依赖**：沿用 `deps-v1.6.0`
 
 ---

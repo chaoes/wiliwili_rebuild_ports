@@ -97,7 +97,7 @@ Ports 包本身跨平台，只要是下面这类设备都能跑：
 - 连续抓帧 40 张，无空白帧（`< 100 KB` 计数 0/40），播放中无闪白
 - 退出走正常路径：`Exiting...` → `mainLoop done` → `exited with code: 0`
 
-上机验证用的就是这里 Release 的 CI 产物（`v1.6.0-r3` 的 zip，sha256 `cbca020c…`），不是本地另编的二进制。
+上机验证用的就是这里 Release 的 CI 产物（`v1.6.0-r3` 的 zip，sha256 `ec44b7d2…`），不是本地另编的二进制。
 
 每次合并上游都会重新上机复测，结论记录在 [`MERGE_LOG.md`](MERGE_LOG.md)。
 
