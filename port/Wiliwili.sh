@@ -5,7 +5,9 @@
 # Reference: https://portmaster.games/packaging.html#the-launchscript-sh
 #
 # ============================================================
-# muOS 修正版 v4 (音频修复 + 防自动省电)  2026-10-20
+# 修正版 v5 (音频修复 + 防自动省电)  2026-11-12
+#  v5: 音频探测加缓存、只在需要时写 ~/.asoundrc 并备份、去掉 remount/写系统目录；
+#      PortMaster 辅助函数全部加存在性判断，脱离 PortMaster 前端也能启动。
 #
 # 1) 音频修复：
 #    ALSA 配置里 pcm.!default 指向 "type pipewire"，
@@ -17,7 +19,8 @@
 #    避免长时间播放视频时因无手柄按键操作而触发自动息屏/休眠；
 #    退出时通过 trap 自动恢复原始设置。
 #
-# 可回滚：删掉 /root/.asoundrc 即还原；本脚本不改 /etc/asound.conf
+# 可回滚：删掉 $HOME/.asoundrc（或还原同目录下的 .bak-wiliwili）即还原；本脚本不改 /etc/asound.conf，
+#         也不改系统目录（不做 remount、不往 /usr/lib 里写文件）
 # ============================================================
 
 XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
@@ -41,7 +44,7 @@ fi
 source $controlfolder/control.txt 2>/dev/null || true
 [ -f "${controlfolder}/mod_${CFW_NAME}.txt" ] && source "${controlfolder}/mod_${CFW_NAME}.txt"
 
-get_controls
+command -v get_controls >/dev/null 2>&1 && get_controls
 
 DEVICE_ARCH="${DEVICE_ARCH:-aarch64}"
 
@@ -65,74 +68,47 @@ echo "HOME: $HOME  USER: $(id -un)  UID: $(id -u)"
 echo "Date: $(date)"
 echo ""
 
-PLUGDIR="/usr/lib/aarch64-linux-gnu/alsa-lib"
 PLUGSO="libasound_module_pcm_pipewire.so"
+PLUG_CACHE="$GAMEDIR/.alsa_plugin_dir"
 
-echo "=== 音频诊断 v3 ==="
-echo "--- os-release ---"
-cat /etc/os-release 2>&1 | head -6
-
-echo "--- ALSA 环境变量 ---"
+echo "=== 音频准备 ==="
 echo "ALSA_PLUGIN_DIR=${ALSA_PLUGIN_DIR:-(未设置)}"
-echo "ALSA_CONFIG_PATH=${ALSA_CONFIG_PATH:-(未设置)}"
-echo "ALSA_CONFIG_DIR=${ALSA_CONFIG_DIR:-(未设置)}"
 
-echo "--- 默认插件目录 $PLUGDIR ---"
-ls -la "$PLUGDIR" 2>&1 | head -30
+# 找 pipewire ALSA 插件：先查常见目录（快），都没命中才做一次浅层 find。
+# 结果缓存到包目录，下次启动直接命中，避免每次启动都全盘搜索（旧版要 40-60 秒）。
+find_plugin_dir() {
+  d=$(cat "$PLUG_CACHE" 2>/dev/null)
+  if [ -n "$d" ] && [ -f "$d/$PLUGSO" ]; then echo "$d"; return 0; fi
 
-echo "--- 其他可能的 alsa-lib 目录 ---"
-ls -ld /usr/lib/alsa-lib /usr/lib/aarch64-linux-gnu/alsa-lib 2>&1
+  for d in "${ALSA_PLUGIN_DIR:-}" \
+           /usr/lib/alsa-lib /usr/lib/aarch64-linux-gnu/alsa-lib /usr/lib64/alsa-lib \
+           /usr/local/lib/alsa-lib /opt/muos/lib/alsa-lib /lib/alsa-lib; do
+    [ -n "$d" ] && [ -f "$d/$PLUGSO" ] && { echo "$d"; return 0; }
+  done
 
-echo "--- 全盘搜索 $PLUGSO ---"
-find /usr /opt /lib /usr/local -name "$PLUGSO" 2>/dev/null | head -10
+  for d in /usr/lib/*/alsa-lib /usr/lib/*/*/alsa-lib; do
+    [ -f "$d/$PLUGSO" ] && { echo "$d"; return 0; }
+  done
 
-echo "--- 搜索 pipewire-alsa 相关文件 ---"
-find /usr /opt -name '*asound_module*pipewire*' -o -name '99-pipewire*' 2>/dev/null | head -10
+  hit=$(find /usr/lib /usr/local/lib /lib /opt -maxdepth 5 -name "$PLUGSO" 2>/dev/null | head -1)
+  [ -n "$hit" ] && dirname "$hit"
+}
 
-echo "--- PipeWire 相关进程 ---"
-ps aux 2>/dev/null | grep -Ei "pipewire|wireplumber|pulse" | grep -v grep
-
-echo "--- pulse socket 是否存在 ---"
-ls -la /run/pulse /run/pipewire-pulse /var/run/pulse ~/.config/pulse 2>&1 | head -12
-
-echo "--- 谁占用了声卡 ---"
-fuser -v /dev/snd/* 2>&1 | head -12
-
-echo "--- muOS 音频脚本（若存在）---"
-ls -la /opt/muos/script/system/pipewire.sh 2>&1
-head -40 /opt/muos/script/system/pipewire.sh 2>/dev/null
-
-echo "--- 当前 asound 配置 ---"
-echo "[ /etc/asound.conf ]"; cat /etc/asound.conf 2>&1
-echo "[ ~/.asoundrc ]"; cat "$HOME/.asoundrc" 2>&1
-echo "=== 音频诊断 v3 结束 ==="
-echo ""
-
-# ============================================================
-# 修正策略
-# ============================================================
-FOUND_PLUGIN=$(find /usr /opt /lib /usr/local -name "$PLUGSO" 2>/dev/null | head -1)
+FOUND_PLUGIN=$(find_plugin_dir)
 
 if [ -n "$FOUND_PLUGIN" ]; then
-  echo ">>> 找到 pipewire ALSA 插件: $FOUND_PLUGIN"
-  SRCDIR=$(dirname "$FOUND_PLUGIN")
+  SRCDIR="$FOUND_PLUGIN"
+  echo ">>> pipewire ALSA 插件: $FOUND_PLUGIN"
 
-  # 方案 A（首选，零侵入）：直接指定 ALSA 插件搜索目录
-  # 系统升级/重刷后依然有效，不依赖 rootfs 里被复制过去的文件
+  # 零侵入方案：只指定插件搜索目录，不改系统文件、不做 remount
   export ALSA_PLUGIN_DIR="$SRCDIR"
-  echo "    已设置 ALSA_PLUGIN_DIR=$SRCDIR"
+  echo "    ALSA_PLUGIN_DIR=$SRCDIR"
+  [ "$(cat "$PLUG_CACHE" 2>/dev/null)" = "$SRCDIR" ] || printf '%s\n' "$SRCDIR" > "$PLUG_CACHE" 2>/dev/null
 
-  # 方案 B（冗余兜底）：把插件补到内置 libasound 期望的目录
-  if [ "$SRCDIR" != "$PLUGDIR" ] && [ ! -f "$PLUGDIR/$PLUGSO" ]; then
-    mount -o remount,rw / 2>/dev/null || true
-    if mkdir -p "$PLUGDIR" 2>/dev/null && cp -n "$FOUND_PLUGIN" "$PLUGDIR/" 2>/dev/null; then
-      echo "    已复制到 $PLUGDIR/"
-    else
-      echo "    复制失败（已有 ALSA_PLUGIN_DIR 兜底，不影响）"
-    fi
-  fi
-
-  cat > "$HOME/.asoundrc" <<'EOF'
+  ASOUNDRC="$HOME/.asoundrc"
+  if ! grep -qsE 'type[[:space:]]+pipewire' "$ASOUNDRC" 2>/dev/null; then
+    [ -f "$ASOUNDRC" ] && cp -n "$ASOUNDRC" "$ASOUNDRC.bak-wiliwili" 2>/dev/null
+    cat > "$ASOUNDRC" <<'EOF'
 pcm.!default {
     type plug
     slave.pcm { type pipewire }
@@ -143,21 +119,15 @@ pcm.!default {
 }
 ctl.!default { type pipewire }
 EOF
-  echo "    已写入 $HOME/.asoundrc (type pipewire)"
+    echo "    已写入 $HOME/.asoundrc (type pipewire)"
+  else
+    echo "    $HOME/.asoundrc 已指向 pipewire，跳过"
+  fi
 else
-  echo ">>> 未找到 pipewire ALSA 插件，改用硬件直连 hw:0,0 (audiocodec)"
-  cat > "$HOME/.asoundrc" <<'EOF'
-pcm.!default {
-    type plug
-    slave.pcm "hw:0,0"
-}
-ctl.!default {
-    type hw
-    card 0
-}
-EOF
-  echo "    已写入 $HOME/.asoundrc (hw:0,0)"
+  echo ">>> 未找到 pipewire ALSA 插件，沿用系统默认音频输出"
 fi
+
+echo ""
 
 # mpv 音频输出（mpv 0.32 无 pipewire ao，故用 pulse,alsa）
 MPVCONF="$CONFDIR/mpv"
@@ -177,10 +147,12 @@ export XDG_DATA_HOME="$CONFDIR"
 export XDG_CONFIG_HOME="$CONFDIR"
 export XDG_CACHE_HOME="$CONFDIR/cache"
 
-bind_directories "$HOME/.config/wiliwili" "$CONFDIR/wiliwili"
+if command -v bind_directories >/dev/null 2>&1; then
+  bind_directories "$HOME/.config/wiliwili" "$CONFDIR/wiliwili"
+fi
 
 export LD_LIBRARY_PATH="$GAMEDIR/libs.${DEVICE_ARCH}:$LD_LIBRARY_PATH"
-export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
+[ -n "${sdl_controllerconfig:-}" ] && export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
 if [ -f "$GAMEDIR/ca-certificates.crt" ]; then
   export SSL_CERT_FILE="$GAMEDIR/ca-certificates.crt"
@@ -270,12 +242,12 @@ if [ "$HAS_SLEEP" -eq 1 ]; then
     echo "防省电: 临时延长 idle_sleep 至 $TIMEOUT 秒 (24小时)"
 fi
 
-$GPTOKEYB "wiliwili.${DEVICE_ARCH}" &
-pm_platform_helper "$GAMEDIR/wiliwili.${DEVICE_ARCH}"
+[ -n "${GPTOKEYB:-}" ] && $GPTOKEYB "wiliwili.${DEVICE_ARCH}" &
+command -v pm_platform_helper >/dev/null 2>&1 && pm_platform_helper "$GAMEDIR/wiliwili.${DEVICE_ARCH}"
 
 echo "Starting wiliwili.${DEVICE_ARCH}..."
 ./wiliwili.${DEVICE_ARCH}
 EXIT_CODE=$?
 echo "wiliwili exited with code: $EXIT_CODE"
 
-pm_finish
+command -v pm_finish >/dev/null 2>&1 && pm_finish
