@@ -25,6 +25,20 @@
 - **产物**：`wiliwili-port-v1.6.0-aarch64.zip`（53,378,731 字节，sha256 `6dd64a2a5be3d02044856a3ee128514be5f9d43bb93e6d5c0a14287ca3180e7e`）
 - **依赖**：`deps-v1.6.0`（libs.aarch64 188 个库 + gl4es v1.1.7）
 
+## 2026-11-12 · v1.6.0-r2（修回分辨率，保留白闪修复）
+
+- **上游**：不变，仍是 `v1.6.0` / `88e5876`
+- **问题**：r1 的 `unset SDL_BLITTER_DISABLED` 让 SDL 走 blitter 路径后，渲染表面尺寸变成窗口尺寸。
+  wiliwili 默认窗口 1280x720，而 H700 面板只有 720x720，于是画面被驱动等比缩放，出现黑边、比例不对
+- **根因**：blitter 路径用 `window->w/h` 建 EGL pixmap 表面；r1 之前这条路径被 muOS 的 `SDL_BLITTER_DISABLED=1` 关着，
+  驱动直接画到 framebuffer（720x720），所以窗口尺寸偏大也没人发现
+- **修复**：新增 `0003-window-size-clamp-to-display`，在 `createWindow` 之前用 `SDL_GetDesktopDisplayMode` 把
+  `VideoContext::sizeW/sizeH` 钳制到显示模式之内；桌面等大屏设备窗口本来就小于屏幕，不受影响
+- **验证**（H700，`fullscreen=false` + `home_window_state=0,1280x720,-280x0` 复现用户配置）：
+  日志出现 `clamp window size to display: 720x720`，截图与 r1 之前的首页布局逐列一致（4 列填满 720x720、无黑边）；
+  退出时 `Save window state` 已写成 `0,720x720,0x0`
+- **产物**：`wiliwili-port-v1.6.0-r2-aarch64.zip`
+
 ## 2026-11-12 · v1.6.0-r1（修复播放视频时白屏闪烁）
 
 - **上游**：不变，仍是 `v1.6.0` / `88e5876`（这次只动打包脚本，不涉及上游代码）

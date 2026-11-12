@@ -1,0 +1,49 @@
+diff --git a/wiliwili/source/main.cpp b/wiliwili/source/main.cpp
+index 06f6e54..8908058 100644
+--- a/wiliwili/source/main.cpp
++++ b/wiliwili/source/main.cpp
+@@ -10,6 +10,7 @@
+ */
+ 
+ #include <borealis.hpp>
++#include <borealis/core/video.hpp>
+ 
+ #include "utils/config_helper.hpp"
+ #include "utils/activity_helper.hpp"
+@@ -19,6 +20,12 @@
+ #include <SDL2/SDL_main.h>
+ #endif
+ 
++#if defined(__SDL2__) && !defined(_WIN32) && !defined(__PSV__) && !defined(PS4)
++#include <SDL2/SDL.h>
++#endif
++
++#include <algorithm>
++
+ int main(int argc, char* argv[]) {
+     for (int i = 1; i < argc; i++) {
+         if (std::strcmp(argv[i], "-d") == 0) {
+@@ -45,6 +52,23 @@ int main(int argc, char* argv[]) {
+     // Return directly to the desktop when closing the application (only for NX)
+     brls::Application::getPlatform()->exitToHomeMode(true);
+ 
++#if defined(__SDL2__) && !defined(_WIN32) && !defined(__PSV__) && !defined(PS4)
++    // 部分掌机用的 SDL 视频驱动（例如 muOS 的 mali-fbdev blitter 路径）是按“窗口尺寸”创建 GL 渲染表面的，
++    // 窗口比面板大时画面会被驱动等比缩放并留下黑边（H700 实测：面板 720x720，wiliwili 默认窗口 1280x720）。
++    // 在创建窗口之前把记录下来的窗口尺寸限制在显示模式之内，全屏模式不受影响。
++    if (VideoContext::sizeW > 0 && VideoContext::sizeH > 0 && SDL_InitSubSystem(SDL_INIT_VIDEO) == 0)
++    {
++        SDL_DisplayMode displayMode;
++        if (SDL_GetDesktopDisplayMode(0, &displayMode) == 0 && displayMode.w > 0 && displayMode.h > 0
++            && (VideoContext::sizeW > (uint32_t)displayMode.w || VideoContext::sizeH > (uint32_t)displayMode.h))
++        {
++            VideoContext::sizeW = std::min<uint32_t>(VideoContext::sizeW, (uint32_t)displayMode.w);
++            VideoContext::sizeH = std::min<uint32_t>(VideoContext::sizeH, (uint32_t)displayMode.h);
++            brls::Logger::info("clamp window size to display: {}x{}", VideoContext::sizeW, VideoContext::sizeH);
++        }
++    }
++#endif
++
+     brls::Application::createWindow("wiliwili");
+     brls::Logger::info("createWindow done");
+ 
