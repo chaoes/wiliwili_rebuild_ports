@@ -1,6 +1,6 @@
 name: build-port
 
-# 只编译 muOS / aarch64 Ports 平台，产物是可直接丢进 /mnt/mmc/ports 的 zip。
+# 只编 aarch64 Ports 平台，产物是可直接放进 Ports 目录的 zip（muOS/ArkOS/ROCKNIX 等通用）。
 on:
   push:
     tags: ['v*']
@@ -96,7 +96,7 @@ jobs:
                 port/README.md port/wiliwili.md "$PKG/"
           cp    port/Wiliwili.sh                build/Wiliwili.sh
           chmod 755 build/Wiliwili.sh
-          ZIP="wiliwili-port-${REL}-h700-aarch64.zip"
+          ZIP="wiliwili-port-${REL}-aarch64.zip"
           ( cd build && zip -r -X -q "../$ZIP" Wiliwili.sh wiliwili )
           sha256sum "$ZIP" > SHA256SUMS
           ls -lh "$ZIP"; cat SHA256SUMS

@@ -1,8 +1,8 @@
 #!/bin/bash
-# 在 arm64 bionic 容器内编译 wiliwili（仅 muOS / aarch64 Ports 平台）
+# 在 arm64 bionic 容器内编译 wiliwili（aarch64 Ports 平台通用）
 #
 # 链接策略：
-#   C/C++ 运行库来自 bionic（glibc 2.27，保证能在 muOS 上跑）
+#   C/C++ 运行库来自 bionic（glibc 2.27，压低目标设备要求）
 #   libmpv / libcurl / libssl / libwebp 使用 deps 资产里已验证的 aarch64 预编译库
 #   SDL2 现场编译，但只用于头文件与链接，运行期用设备自带的 libSDL2-2.0.so.0
 set -euo pipefail

@@ -1,9 +1,9 @@
 # wiliwili_rebuild_ports
 
-给 **muOS / aarch64 掌机（H700 平台）** 用的 wiliwili Ports 打包仓库。
+给 **aarch64 掌机** 用的 wiliwili Ports（PortMaster 规范）打包仓库。
 
 > 本仓库**不是** wiliwili 的分支，也不包含上游源码。
-> 它只保存「muOS 打包脚本 + 本地补丁」，每次构建时按 `VERSION` 里的 tag 现场拉取上游源码再打补丁。
+> 它只保存「Ports 打包脚本 + 本地补丁」，每次构建时按 `VERSION` 里的 tag 现场拉取上游源码再打补丁。
 > 想了解 wiliwili 本身、提功能需求、报上游 bug，请去上游仓库。
 
 ## 上游
@@ -40,9 +40,21 @@ B 站关注列表接口有时返回 `"mid":"356307984"` 这种**字符串**，�
 改法：图片请求补上与其它接口一致的 `bilibili::HTTP::HEADERS`（UA `wiliwili`，带 Referer/Origin），
 并加最多 3 次、间隔 0.5s/1.0s 的重试，最终失败时打一条带状态码/URL 的 warning。
 
+## 兼容性
+
+Ports 包本身跨平台，只要是下面这类设备都能跑：
+
+- **aarch64**（arm64），glibc **≥ 2.27**
+- 装了 **PortMaster** 或同类 Ports 前端（muOS / ArkOS / JELOS / ROCKNIX / Knulli 等布局都兼容）
+- 系统有 **SDL2 ≥ 2.28**（包内不带 SDL，复用系统的）
+- 有 OpenGL ES 2.0/3.x 的 GL 驱动
+
+当前**实测过的设备**只有一台：**H700（muOS 2606.0 ANDROMEDA，Mali-G31 / GLES 3.2）**。
+其它 aarch64 设备理论上可用但没验过；启动脚本里 muOS 专用的部分（pipewire 音频修复、防自动省电）都有存在性判断，换平台不会报错，只是不生效。
+
 ## 测试情况
 
-**已在 H700 设备（muOS 2606.0 ANDROMEDA，Mali-G31 / GLES 3.2）实测通过**：
+**已在 H700（muOS 2606.0 ANDROMEDA，Mali-G31 / GLES 3.2）上实测通过**：
 
 - 首页 16 张卡片封面全部真实加载，日志 `image request failed` = 0 条
 - 「动态」页正常显示关注列表与动态流，无 `type_error.302`
@@ -55,13 +67,14 @@ B 站关注列表接口有时返回 `"mid":"356307984"` 这种**字符串**，�
 
 ## 安装
 
-从 [Releases](../../releases) 下载 `wiliwili-port-<版本>-h700-aarch64.zip`，解压到 `/mnt/mmc/ports/`：
+从 [Releases](../../releases) 下载 `wiliwili-port-<版本>-aarch64.zip`，解压到设备的 Ports 目录
+（muOS 常见 `/mnt/mmc/ports/`，其它系统常见 `/roms/ports/` 或 `$XDG_DATA_HOME/PortMaster/ports/`）：
 
 ```sh
-unzip wiliwili-port-v1.6.0-h700-aarch64.zip -d /mnt/mmc/ports/
+unzip wiliwili-port-v1.6.0-aarch64.zip -d /mnt/mmc/ports/   # 按自己设备改路径
 ```
 
-然后从 muOS 的 **Ports** 分类里启动；也可以直接执行 `/mnt/mmc/ROMS/Ports/Wiliwili.sh`。
+然后从设备前端的 **Ports** 分类里启动；也可以直接执行包内的 `Wiliwili.sh`。
 
 - 首次启动会在 `wiliwili/conf/` 生成配置，登录态存本机
 - 卸载：删掉 `/mnt/mmc/ports/wiliwili` 即可
@@ -69,12 +82,12 @@ unzip wiliwili-port-v1.6.0-h700-aarch64.zip -d /mnt/mmc/ports/
 
 ## 构建
 
-CI 在 **ubuntu-24.04-arm** 原生 arm64 上跑，容器里是 `arm64v8/ubuntu:18.04`（glibc 2.27，保证 muOS 能跑），
+CI 在 **ubuntu-24.04-arm** 原生 arm64 上跑，容器里是 `arm64v8/ubuntu:18.04`（glibc 2.27，压低运行库要求，老一些的 Ports 设备也能跑），
 **不需要 qemu 用户态，也不需要注册 binfmt**。
 
 - 工作流：[`.github/workflows/build.yml`](.github/workflows/build.yml)
 - 触发：推 `v*` tag，或在 Actions 页手动 `workflow_dispatch`
-- 产物：`wiliwili-port-<版本>-h700-aarch64.zip` + `SHA256SUMS`，直接发布到 Release
+- 产物：`wiliwili-port-<版本>-aarch64.zip` + `SHA256SUMS`，直接发布到 Release
 
 本地复现（需要 arm64 主机，或 x86 + binfmt）：
 
@@ -133,7 +146,7 @@ MERGE_LOG.md            # 每次合并上游的记录（必填）
 ## 已知限制
 
 - `HighlightProgress` 偶发报错（message 为空）：更像上游接口返回 403/412，未处理
-- 硬件解码在这台设备上不可用（已实测）：muOS 内核 4.9.170 没有 V4L2 M2M 节点（`/dev/video*` 只有 CSI 的 subdev），
+- 硬件解码在 H700 上不可用（已实测）：该机 muOS 内核 4.9.170 没有 V4L2 M2M 节点（`/dev/video*` 只有 CSI 的 subdev），
   也没有 DRM render node；H700 的 VPU 只通过 BSP 的 `/dev/cedar_dev` 暴露，FFmpeg/mpv 都不认这套接口。
   设置里打开「硬件解码」后 `hwdec-current` 仍是 `no`；系统自带的 mpv 0.35.1（原生支持 `v4l2m2m`）跑同一文件同样报
   `DR failed - disabling`。所以包里只提供软解，开关保留但不生效
