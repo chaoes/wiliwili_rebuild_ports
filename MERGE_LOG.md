@@ -37,7 +37,7 @@
   - 现象：窗口状态里记录的尺寸大于面板时，画面被驱动等比缩放，出现黑边、比例不对
   - 根因：部分掌机 SDL 视频驱动按窗口尺寸创建 GL 渲染表面（muOS 的 `mali-fbdev` blitter 路径即是），而 wiliwili 记录的默认窗口是 1280x720、H700 面板是 720x720
   - 修复：`createWindow` 之前用 `SDL_GetDesktopDisplayMode` 把 `VideoContext::sizeW/sizeH` 钳制到显示模式之内；桌面等大屏设备窗口本就小于屏幕，不触发
-- **改动三 · 启动脚本 v5（`port/Wiliwili.sh`）**
+- **改动三 · 启动脚本 v5（`port/Wiliwili.sh`，r3 发版后合入 main，将随下一个发布包生效）**
   - 音频插件探测改为「缓存 + 常见目录 + 浅层 find」，启动从 40–60 秒降到 1 秒内
   - 不再 `mount -o remount,rw /`、不再往 `/usr/lib` 拷插件，只设 `ALSA_PLUGIN_DIR`
   - `~/.asoundrc` 仅在检测到 pipewire 插件且未指向 pipewire 时写入，写前备份；找不到插件时交还系统默认配置
