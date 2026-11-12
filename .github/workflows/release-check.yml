@@ -1,10 +1,10 @@
 name: release-check
 
-# 每周检查一次本仓库的 VERSION 与最新 Release 是否一致（忘记发版 / 忘记改版本号都能发现）。
-# 不一致就开 issue，不动代码、不自动发版。
+# 每周核对一次：仓库里的 VERSION 与最新 Release 是否一致（忘记发版 / 忘记改版本号都能发现）。
+# 不一致就开 issue，不改代码、不自动发版。
 on:
   schedule:
-    - cron: '0 1 * * 1'      # 每周一 01:00 UTC
+    - cron: '0 1 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -17,66 +17,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 读取本地版本号与最新 Release
+      - name: 比对 VERSION 与最新 Release
         id: v
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          CUR=$(tr -d '[:space:]' < VERSION)
-          echo "current=$CUR" >> "$GITHUB_OUTPUT"
-          echo "tag=${CUR#v}" >> "$GITHUB_OUTPUT"
+          REPO: ${{ github.repository }}
+        run: python3 .github/scripts/release_check.py
 
-          LATEST=$(gh api "repos/${{ github.repository }}/releases/latest" --jq '.tag_name' 2>/dev/null || true)
-          if [ -z "$LATEST" ]; then
-            echo "latest=(none)" >> "$GITHUB_OUTPUT"
-            echo "state=none" >> "$GITHUB_OUTPUT"
-            echo "还没有任何 Release"
-            exit 0
-          fi
-          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
-
-          # 一致判定：Release tag 等于 VERSION，或为 VERSION 的修复版（如 v1.6.0-r3）
-          if [ "$LATEST" = "$CUR" ] || [ "${LATEST#"$CUR"-}" != "$LATEST" ]; then
-            echo "state=ok" >> "$GITHUB_OUTPUT"
-          else
-            echo "state=mismatch" >> "$GITHUB_OUTPUT"
-          fi
-          echo "VERSION=$CUR  最新 Release=$LATEST"
-
-      - name: 打开 issue
+      - name: 不一致时开 issue
         if: steps.v.outputs.state != 'ok'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          if [ "${{ steps.v.outputs.state }}" = "none" ]; then
-            TITLE="发版检查：仓库还没有 Release"
-            BODY=$(cat <<'EOF'
-          `VERSION` 已经在仓库里，但还没有任何 Release 产物。
-
-          发版步骤：
-          1. 确认补丁与 `VERSION` 都已提交
-          2. `git tag <tag> && git push origin <tag>`（tag 形如 `v1.6.0`、`v1.6.0-r3`）
-          3. 等 build-port 跑完，检查 Release 资产里的 zip 与 `SHA256SUMS`
-          EOF
-          )
+          set -eu
+          title=$(cat /tmp/release_check/title.txt)
+          exist=$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$exist" ]; then
+            echo "已存在 issue #$exist，跳过"
           else
-            TITLE="发版检查：VERSION (${{ steps.v.outputs.current }}) 与最新 Release (${{ steps.v.outputs.latest }}) 不一致"
-            BODY=$(cat <<EOF
-          - 仓库里的 \`VERSION\`：\`${{ steps.v.outputs.current }}\`
-          - 最新 Release：\`${{ steps.v.outputs.latest }}\`
-
-          两种情况之一：
-          - 已经改了 \`VERSION\` 但还没发版 → 打 tag 推送（\`v${{ steps.v.outputs.current#v }}\` 或修复版后缀）触发 build-port
-          - 已经发了版但忘了改 \`VERSION\` → 补一次提交，并在 \`MERGE_LOG.md\` 里对齐
-          EOF
-            )
-          fi
-
-          EXIST=$(gh issue list --state open --search "${TITLE} in:title" --json number --jq '.[0].number // empty')
-          if [ -n "$EXIST" ]; then
-            echo "已存在 issue #$EXIST，跳过"
-          else
-            gh issue create --title "$TITLE" --body "$BODY"
+            gh issue create --title "$title" --body-file /tmp/release_check/body.md
           fi
