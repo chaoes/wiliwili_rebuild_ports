@@ -211,12 +211,6 @@ fi
 
 [ -z "$SDL_AUDIODRIVER" ] && export SDL_AUDIODRIVER=alsa
 
-# muOS 启动器（SETUP_SDL_ENVIRONMENT）会额外导出 SDL_BLITTER_DISABLED=1。
-# 这个变量会让 SDL 走直写 fb 的呈现路径，播放视频时偶发只把清屏帧送上屏
-# （表现就是屏幕白屏闪烁）。必须 unset 掉；设成 0 也仍有残留闪烁，
-# 只有完全移除该变量才稳定。
-unset SDL_BLITTER_DISABLED
-
 echo "SDL_AUDIODRIVER=$SDL_AUDIODRIVER"
 echo "ALSA_PLUGIN_DIR=${ALSA_PLUGIN_DIR:-(默认)}"
 echo ""

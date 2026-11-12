@@ -90,6 +90,7 @@ cmake -S "$SRC" -B "$BUILD/wiliwili" -G Ninja \
   -DCURL_INCLUDE_DIR="$DEPS/include" \
   -DCURL_LIBRARY="$DEPS/lib/libcurl.so.4" \
   -DPLATFORM_DESKTOP=ON \
+  -DMPV_NO_FB=ON \
   -DUSE_SDL2=ON \
   -DUSE_GLES2=ON \
   -DUSE_SYSTEM_SDL2=ON \

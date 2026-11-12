@@ -19,7 +19,7 @@
 ## 修了什么（本地补丁）
 
 这些问题**在上游源码里就存在**，与交叉编译无关，属于移植时顺手修掉的真实缺陷。
-补丁在 [`patches/`](patches)，构建时以 `git apply` 打到上游源码上；脚本层的修复写在 `port/Wiliwili.sh` 里。
+补丁在 [`patches/`](patches)，构建时以 `git apply` 打到上游源码上；另有一个只改编译选项的修复（`-DMPV_NO_FB=ON`），写在 [`docker/build.sh`](docker/build.sh) 里。
 
 ### 0001 · 动态页整页崩溃（`type must be number, but is string`）
 
@@ -49,12 +49,17 @@ wiliwili 把窗口尺寸记在 `wiliwili_config.json` 的 `setting.home_window_s
 改法：创建窗口之前，把记录下来的窗口尺寸钳制到显示模式之内（`SDL_GetDesktopDisplayMode`）。
 桌面等大分辨率设备上窗口原本就比屏幕小，这段逻辑不会触发；全屏模式由驱动自己处理，也不受影响。
 
-### 脚本层 · 播放视频时闪白帧
+### 构建选项 · 播放视频时屏幕闪白（`-DMPV_NO_FB=ON`）
 
-muOS 的启动脚本会导出 `SDL_BLITTER_DISABLED=1`，让它改过的 SDL2 走直写 framebuffer 的呈现路径——
-没有多重缓冲，每一帧的清屏都会真的上屏，播放视频这种整屏重绘时就会间歇闪出纯灰白帧。
-`port/Wiliwili.sh` 在启动前 `unset SDL_BLITTER_DISABLED`（注意：设成 `0` 不够，仍会闪），
-回到驱动自带的三重缓冲路径。配合上面的 0003 保证缓冲尺寸等于面板尺寸，画面与之前逐像素一致。
+默认配置下 mpv 渲染到一张独立的 framebuffer，应用再把这张纹理贴到屏幕上。
+在 gl4es（这类掌机上用来把 GL 调用转成 GLES 的兼容层）下，这条「纹理 → 默认帧缓冲」的全屏 blit
+会触发它内部的交换 hack，偶尔把**刚清完屏、还没画内容**的那一帧送到屏幕——
+表现就是播放视频时屏幕间歇闪出整屏纯灰白。
+
+开启 `-DMPV_NO_FB=ON` 后 mpv 直接渲染到默认帧缓冲，不再走这段 blit，闪白消失。
+同一份源码、同一台设备实测：不开该选项 30/40 帧为空帧，开启后 0/40。
+
+这个改动只影响渲染路径，不改环境变量、不改窗口尺寸，播放时的画面与默认行为一致。
 
 ## 兼容性
 
