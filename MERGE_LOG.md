@@ -10,8 +10,7 @@
 | 日期 | 上游版本 | 上游提交 | 本地补丁 | 构建 | 上机测试 | 备注 |
 |---|---|---|---|---|---|---|
 | 2026-11-12 | v1.6.0 | 88e5876 | 0001, 0002 | ✅ | ✅ H700 | 首次导入 |
-| 2026-11-12 | v1.6.0 | 88e5876 | 0001, 0002 | ✅ | ✅ H700 | 修复播放白闪（`v1.6.0-r1`，已由 r3 取代） |
-| 2026-11-12 | v1.6.0 | 88e5876 | 0001, 0002, 0003 | ✅ | ✅ H700 | 改用 `-DMPV_NO_FB=ON` 修白闪（`v1.6.0-r3`） |
+| 2026-11-12 | v1.6.0 | 88e5876 | 0001, 0002, 0003 | ✅ | ✅ H700 | `v1.6.0-r3`：修白闪、窗口钳制、启动脚本 v5 |
 
 ## 2026-11-12 · v1.6.0（首次导入）
 
@@ -21,59 +20,32 @@
 - **本地补丁**：
   - `0001-dynamic-up-mid-as-string`：动态页 `up_list` 里 `mid` 可能是字符串，`NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE` 会抛 `type must be number, but is string` 打挂整页，改为兼容两种类型
   - `0002-image-request-headers-and-retry`：图片请求没设请求头，libcurl 的 `User-Agent: curl/7.68.0` 在 B 站图床缓存未命中时被 ACL 判 403（`X-Error-Info: acls.access`），导致部分封面永久空白；补 `HTTP::HEADERS` + 最多 3 次重试
-- **构建**：GitHub Actions `build-port`（ubuntu-24.04-arm + bionic 容器），run [43155311161](https://github.com/chaoes/wiliwili_rebuild_ports/actions/runs/43155311161) 成功（产物改名后重建，二进制可复现，md5 与上轮一致）
-- **上机**：H700（muOS 2606.0 ANDROMEDA，Mali-G31 / GLES 3.2）通过 —— 测的就是 CI 产物 zip 解包后的二进制（7,276,320 字节，md5 `a585f8a831eb12c9cb61325972d54b83`）：首页 16 张封面全部加载、`image request failed` 0 条、动态页无 `type_error.302`、视频播放/全屏/弹幕/音频正常、退出码 0
+- **构建**：GitHub Actions `build-port`（ubuntu-24.04-arm + bionic 容器），run [43155311161](https://github.com/chaoes/wiliwili_rebuild_ports/actions/runs/43155311161) 成功（二进制可复现，md5 `a585f8a831eb12c9cb61325972d54b83`）
+- **上机**：H700（muOS 2606.0 ANDROMEDA，Mali-G31 / GLES 3.2）通过 —— 测的就是 CI 产物 zip 解包后的二进制：首页 16 张封面全部加载、`image request failed` 0 条、动态页无 `type_error.302`、视频播放/全屏/弹幕/音频正常、退出码 0
 - **产物**：`wiliwili-port-v1.6.0-aarch64.zip`（53,378,731 字节，sha256 `6dd64a2a5be3d02044856a3ee128514be5f9d43bb93e6d5c0a14287ca3180e7e`）
 - **依赖**：`deps-v1.6.0`（libs.aarch64 188 个库 + gl4es v1.1.7）
 
-## 2026-11-12 · v1.6.0-r2（修回分辨率，保留白闪修复）
+## 2026-11-12 · v1.6.0-r3
 
-> 已被 `v1.6.0-r3` 取代：r2 用窗口尺寸钳制抵消 r1 的副作用，r3 则直接换渲染路径，两者都不再需要。
-
-- **上游**：不变，仍是 `v1.6.0` / `88e5876`
-- **问题**：r1 的 `unset SDL_BLITTER_DISABLED` 让 SDL 走 blitter 路径后，渲染表面尺寸变成窗口尺寸。
-  wiliwili 默认窗口 1280x720，而 H700 面板只有 720x720，于是画面被驱动等比缩放，出现黑边、比例不对
-- **根因**：blitter 路径用 `window->w/h` 建 EGL pixmap 表面；r1 之前这条路径被 muOS 的 `SDL_BLITTER_DISABLED=1` 关着，
-  驱动直接画到 framebuffer（720x720），所以窗口尺寸偏大也没人发现
-- **修复**：新增 `0003-window-size-clamp-to-display`，在 `createWindow` 之前用 `SDL_GetDesktopDisplayMode` 把
-  `VideoContext::sizeW/sizeH` 钳制到显示模式之内；桌面等大屏设备窗口本来就小于屏幕，不受影响
-- **验证**（H700，`fullscreen=false` + `home_window_state=0,1280x720,-280x0` 复现用户配置）：
-  日志出现 `clamp window size to display: 720x720`，截图与 r1 之前的首页布局逐列一致（4 列填满 720x720、无黑边）；
-  退出时 `Save window state` 已写成 `0,720x720,0x0`
-- **产物**：`wiliwili-port-v1.6.0-r2-aarch64.zip`
-
-## 2026-11-12 · v1.6.0-r1（修复播放视频时白屏闪烁）
-
-> 已被 `v1.6.0-r3` 取代：当时把原因归到 SDL 呈现路径，改的是环境变量；真正的原因是渲染路径本身，见 r3。
-
-- **上游**：不变，仍是 `v1.6.0` / `88e5876`（这次只动打包脚本，不涉及上游代码）
-- **问题**：从系统的 Ports 列表启动后播放视频，屏幕会间歇闪出纯灰白空帧（实测连拍 40 帧有 3 帧是 16355 字节的纯色帧）
-- **根因**：muOS 的启动脚本 `SETUP_SDL_ENVIRONMENT` 会导出 `SDL_BLITTER_DISABLED=1`。这个变量让 muOS 改过的 SDL2 走直写 fb 的呈现路径，偶发只把清屏帧送上屏
-- **实测数据**（H700，同一诊断二进制，各连拍 40 帧统计 < 100 KB 的空帧）：
-  - 无额外变量：0/40
-  - 只有 `SDL_HQ_SCALER=0`：0/40
-  - `SDL_BLITTER_DISABLED=1`：30/40（白闪）
-  - `SDL_BLITTER_DISABLED=0`：2/40（仍有残留）
-  - `unset SDL_BLITTER_DISABLED`：0/40
-- **修复**：`port/Wiliwili.sh` 里在启动前 `unset SDL_BLITTER_DISABLED`（不是设 0，设 0 仍会闪）
-- **验证**：改脚本后仍走系统列表路径（前端先退出，只有一个 fb0 写入者）播放视频，连拍 40 帧 **0 帧空帧**
-- **产物**：`wiliwili-port-v1.6.0-r1-aarch64.zip`
-
-## 2026-11-12 · v1.6.0-r3（改用 MPV_NO_FB 修白闪，画面回到与原生一致）
-
-- **上游**：不变，仍是 `v1.6.0` / `88e5876`
-- **问题**：r1/r2 是靠「不设 muOS 的 `SDL_BLITTER_DISABLED`」来消除闪白的，副作用是画面尺寸/比例跟着窗口状态变（用户反馈 r1 比例不对）。另一边，同环境下的原版移植包播放视频并不闪
-- **根因**：默认构建把视频渲染到独立 FBO，再由应用把该纹理贴到屏幕；在 gl4es 下，这条「纹理 → 默认帧缓冲」的全屏 blit 会触发其内部的交换 hack，偶尔把刚清完屏的那一帧送上屏。原版移植包开了 `-DMPV_NO_FB=ON`，mpv 直接渲染默认帧缓冲，因此没有这段路径
-- **修复**：
-  - `docker/build.sh` 的 cmake 参数加入 `-DMPV_NO_FB=ON`
-  - 移除 `port/Wiliwili.sh` 里的 `unset SDL_BLITTER_DISABLED`（不再改动 muOS 注入的环境变量）
-  - 保留 `0003` 的窗口尺寸钳制（只在窗口大于面板时生效，全屏不触发）
-- **实测数据**（H700，系统列表路径，连拍 40 帧统计 < 100 KB 的空帧）：
-  - 原版移植包（作者构建）：0/40
-  - 本仓库不加宏的构建：30/40
-  - 本仓库加 `-DMPV_NO_FB=ON` 的构建：0/40，画面 720x720 铺满
-- **验证**：诊断用临时构建（自动打开视频页）播放期间 40 帧 0 空帧，截图与参考的播放画面距离 0.067
-- **产物**：`wiliwili-port-v1.6.0-r3-aarch64.zip`
+- **上游**：不变，仍是 `v1.6.0` / `88e5876`。本轮只改构建选项、补一个补丁、清理启动脚本
+- **改动一 · 播放时闪白帧（构建选项 `-DMPV_NO_FB=ON`）**
+  - 现象：从系统 Ports 列表启动，播放视频时间歇闪出整屏纯灰白空帧
+  - 根因：默认构建把视频渲染到独立 FBO，再由应用把该纹理贴到屏幕；在 gl4es 下，这条「纹理 → 默认帧缓冲」的全屏 blit 会触发其内部的交换 hack，偶尔把刚清完屏、还没画内容的那一帧送上屏。让 mpv 直接渲染默认帧缓冲（`MPV_NO_FB`）即可绕开这段路径
+  - 实测（H700，连拍 40 帧统计 < 100 KB 的空帧）：不开该选项 30/40，开启后 0/40；对照的上游风格构建同样为 0/40
+  - 该选项只影响渲染路径，不改环境变量、不改窗口尺寸
+- **改动二 · 新增 `0003-window-size-clamp-to-display`**
+  - 现象：窗口状态里记录的尺寸大于面板时，画面被驱动等比缩放，出现黑边、比例不对
+  - 根因：部分掌机 SDL 视频驱动按窗口尺寸创建 GL 渲染表面（muOS 的 `mali-fbdev` blitter 路径即是），而 wiliwili 记录的默认窗口是 1280x720、H700 面板是 720x720
+  - 修复：`createWindow` 之前用 `SDL_GetDesktopDisplayMode` 把 `VideoContext::sizeW/sizeH` 钳制到显示模式之内；桌面等大屏设备窗口本就小于屏幕，不触发
+- **改动三 · 启动脚本 v5（`port/Wiliwili.sh`）**
+  - 音频插件探测改为「缓存 + 常见目录 + 浅层 find」，启动从 40–60 秒降到 1 秒内
+  - 不再 `mount -o remount,rw /`、不再往 `/usr/lib` 拷插件，只设 `ALSA_PLUGIN_DIR`
+  - `~/.asoundrc` 仅在检测到 pipewire 插件且未指向 pipewire 时写入，写前备份；找不到插件时交还系统默认配置
+  - `get_controls` / `bind_directories` / `pm_platform_helper` / `pm_finish` / `$GPTOKEYB` 全部加存在性判断，脱离 PortMaster 前端也能启动
+- **构建**：build-port，run [43181092309](https://github.com/chaoes/wiliwili_rebuild_ports/actions/runs/43181092309) 成功
+- **上机**（H700，系统 Ports 分类启动）：首页封面全真实、动态页正常；播放视频连拍 40 帧 0 空帧、音频 `RUNNING`；退出码 0
+- **产物**：`wiliwili-port-v1.6.0-r3-aarch64.zip`（53,378,108 字节，sha256 `cbca020c9745f818e4c5f75efb92bb73642d06c98af124e36b6dfe86b4735a11`）
+- **依赖**：沿用 `deps-v1.6.0`
 
 ---
 

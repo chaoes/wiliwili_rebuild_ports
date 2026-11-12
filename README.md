@@ -16,10 +16,11 @@
 本仓库的补丁以同样许可证（GPL-3.0）发布，属于上游作品的衍生部分；一旦被上游采纳，这里就会删掉对应补丁。
 打包脚本、CI 配置等纯打包内容不涉及上游著作权，但也同样在 GPL-3.0 下提供，供随意取用。
 
-## 修了什么（本地补丁）
+## 修了什么
 
 这些问题**在上游源码里就存在**，与交叉编译无关，属于移植时顺手修掉的真实缺陷。
-补丁在 [`patches/`](patches)，构建时以 `git apply` 打到上游源码上；另有一个只改编译选项的修复（`-DMPV_NO_FB=ON`），写在 [`docker/build.sh`](docker/build.sh) 里。
+补丁在 [`patches/`](patches)，构建时以 `git apply` 打到上游源码上；另有一个只改编译选项的修复（`-DMPV_NO_FB=ON`），
+写在 [`docker/build.sh`](docker/build.sh) 里；启动脚本层面的改动在 [`port/`](port)。
 
 ### 0001 · 动态页整页崩溃（`type must be number, but is string`）
 
@@ -61,6 +62,19 @@ wiliwili 把窗口尺寸记在 `wiliwili_config.json` 的 `setting.home_window_s
 
 这个改动只影响渲染路径，不改环境变量、不改窗口尺寸，播放时的画面与默认行为一致。
 
+### 启动脚本 · 音频探测与零系统写入（`port/Wiliwili.sh`）
+
+muOS 默认把 ALSA 的 `pcm.!default` 指向 `type pipewire`，但插件目录不在 alsa-lib 的默认搜索路径里，
+于是 mpv 打不开音频设备——表现为有画面无声音。脚本的做法：
+
+- 先查缓存与几个常见目录（`/usr/lib/alsa-lib`、`/usr/lib/*/alsa-lib` 等），都未命中才做一次浅层 `find`，结果写进包目录缓存，启动开销 1 秒内
+- 找到插件后只设置 `ALSA_PLUGIN_DIR`，**不 remount、不往系统目录写文件**
+- 需要时才写 `~/.asoundrc`（且先备份成 `.asoundrc.bak-wiliwili`）；找不到 pipewire 插件就保持系统原配置，不硬写设备名
+- `get_controls` / `bind_directories` / `pm_platform_helper` / `pm_finish` / `$GPTOKEYB` 均带存在性判断，没装 PortMaster 的前端也能正常启动
+
+muOS 专属的防自动省电（临时延长 `idle_display`/`idle_sleep`，退出时 `trap` 还原）只在
+`/run/muos/global/settings/power/` 可读写时生效，其它平台自动跳过。
+
 ## 兼容性
 
 Ports 包本身跨平台，只要是下面这类设备都能跑：
@@ -80,9 +94,10 @@ Ports 包本身跨平台，只要是下面这类设备都能跑：
 - 首页 16 张卡片封面全部真实加载，日志 `image request failed` = 0 条
 - 「动态」页正常显示关注列表与动态流，无 `type_error.302`
 - 视频播放：播放页 → 全屏，进度/清晰度/弹幕/字幕正常，音频设备状态为 `RUNNING`
+- 连续抓帧 40 张，无空白帧（`< 100 KB` 计数 0/40），播放中无闪白
 - 退出走正常路径：`Exiting...` → `mainLoop done` → `exited with code: 0`
 
-上机验证用的就是这里 Release 的 CI 产物（`v1.6.0` 的 zip，sha256 `6dd64a2a…`），不是本地另编的二进制。
+上机验证用的就是这里 Release 的 CI 产物（`v1.6.0-r3` 的 zip，sha256 `cbca020c…`），不是本地另编的二进制。
 
 每次合并上游都会重新上机复测，结论记录在 [`MERGE_LOG.md`](MERGE_LOG.md)。
 
@@ -92,7 +107,7 @@ Ports 包本身跨平台，只要是下面这类设备都能跑：
 （muOS 常见 `/mnt/mmc/ports/`，其它系统常见 `/roms/ports/` 或 `$XDG_DATA_HOME/PortMaster/ports/`）：
 
 ```sh
-unzip wiliwili-port-v1.6.0-aarch64.zip -d /mnt/mmc/ports/   # 按自己设备改路径
+unzip wiliwili-port-v1.6.0-r3-aarch64.zip -d /mnt/mmc/ports/   # 按自己设备改路径
 ```
 
 然后从设备前端的 **Ports** 分类里启动；也可以直接执行包内的 `Wiliwili.sh`。
@@ -131,7 +146,7 @@ docker run --rm --platform linux/arm64 -v "$PWD:/work" -w /work \
   wiliwili-bionic bash /work/docker/build.sh
 ```
 
-编译参数（只在 Ports 平台）：`PLATFORM_DESKTOP + USE_SDL2 + USE_GLES2 + USE_SYSTEM_SDL2 + USE_SYSTEM_CURL + USE_LIBROMFS=OFF`。
+编译参数（只在 Ports 平台）：`PLATFORM_DESKTOP + USE_SDL2 + USE_GLES2 + USE_SYSTEM_SDL2 + USE_SYSTEM_CURL + USE_LIBROMFS=OFF + MPV_NO_FB=ON`。
 SDL2 只用于编译期头文件与链接，运行期用设备自带的 `libSDL2-2.0.so.0`。
 
 ## 合并上游
