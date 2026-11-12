@@ -133,7 +133,10 @@ MERGE_LOG.md            # 每次合并上游的记录（必填）
 ## 已知限制
 
 - `HighlightProgress` 偶发报错（message 为空）：更像上游接口返回 403/412，未处理
-- 硬件解码未开启（`HW: no`）：mpv 0.32 + FFmpeg 4.2 这套库没有配硬解
+- 硬件解码在这台设备上不可用（已实测）：muOS 内核 4.9.170 没有 V4L2 M2M 节点（`/dev/video*` 只有 CSI 的 subdev），
+  也没有 DRM render node；H700 的 VPU 只通过 BSP 的 `/dev/cedar_dev` 暴露，FFmpeg/mpv 都不认这套接口。
+  设置里打开「硬件解码」后 `hwdec-current` 仍是 `no`；系统自带的 mpv 0.35.1（原生支持 `v4l2m2m`）跑同一文件同样报
+  `DR failed - disabling`。所以包里只提供软解，开关保留但不生效
 - 封面修复依赖 B 站当前的 UA 策略，对方若再调整可能还需要跟进
 
 ## 致谢
