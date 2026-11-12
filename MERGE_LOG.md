@@ -56,9 +56,9 @@
   - 改动范围：`resources/xml/fragment/settings_about.xml` 加 Header + Label；7 个语言的 `wiliwili.json` 补 `setting.about.port_repository`
   - 纯资源改动，二进制不变
 - **冲突**：无
-- **构建**：build-port，run RUN_LINK
+- **构建**：build-port，run [43217968317](https://github.com/chaoes/wiliwili_rebuild_ports/actions/runs/43217968317)
 - **上机**（H700，系统 Ports 分类启动）：「关于更多」页面显示「移植项目地址」与仓库链接，其余页面不受影响
-- **产物**：`wiliwili-port-v1.6.0-r4-aarch64.zip`（ZIP_SIZE 字节，sha256 `ZIP_SHA`），二进制 7,280,400 字节 md5 `bf69d98a0c3f77a6f78d55c0895343e4`
+- **产物**：`wiliwili-port-v1.6.0-r4-aarch64.zip`（53,378,207 字节，sha256 `59ad1cf84d0dd24c9a7e4789403442d188d01a68a70a32e0ebdc4d7b8282aa65`），二进制 7,280,400 字节 md5 `bf69d98a0c3f77a6f78d55c0895343e4`
 - **依赖**：沿用 `deps-v1.6.0`
 
 ---
