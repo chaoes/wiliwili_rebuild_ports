@@ -61,7 +61,7 @@ Ports 包本身跨平台，只要是下面这类设备都能跑：
 - 视频播放：播放页 → 全屏，进度/清晰度/弹幕/字幕正常，音频设备状态为 `RUNNING`
 - 退出走正常路径：`Exiting...` → `mainLoop done` → `exited with code: 0`
 
-上机验证用的就是这里 Release 的 CI 产物（`v1.6.0` 的 zip，sha256 `7601484e…`），不是本地另编的二进制。
+上机验证用的就是这里 Release 的 CI 产物（`v1.6.0` 的 zip，sha256 `6dd64a2a…`），不是本地另编的二进制。
 
 每次合并上游都会重新上机复测，结论记录在 [`MERGE_LOG.md`](MERGE_LOG.md)。
 
